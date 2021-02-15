@@ -150,7 +150,7 @@ export default {
   methods: {
     add() {
       if (this.ticker === null){
-        alert('Pls enter')
+        alert('Pls enter correct data')
         return false;
       }
 
@@ -162,28 +162,28 @@ export default {
       }
 
 
-      const def = {
+      const newTicker = {
         name: this.ticker,
         price: '-',
         polling : '-'
       };
 
 
-      let a = setInterval(async ()=>{
-        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${def.name}&tsyms=USD&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
+      let pollings = setInterval(async ()=>{
+        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
         const data = await f.json();
         // def.price = data.USD;
-        this.tickers.find(t => t.name === def.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(3);
-        if (this.sel && this.sel.name === def.name){
+        this.tickers.find(t => t.name === newTicker.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(3);
+        if (this.sel && this.sel.name === newTicker.name){
             this.graph.push(data.USD)
         }
 
       },3000)
 
-      def.polling = a
-      this.tickers.push(def)
-
+      newTicker.polling = pollings
+      this.tickers.push(newTicker)
       this.ticker = null
+
     },
     select(tick){
       this.sel = tick
