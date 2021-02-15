@@ -149,30 +149,39 @@ export default {
   },
   methods: {
     add() {
-      // if (this.ticker === null){
-      //   alert('Pls enter')
-      //   return false;
-      // }
+      if (this.ticker === null){
+        alert('Pls enter')
+        return false;
+      }
+
+      if (this.tickers.length > 0) {
+        if (this.tickers.map(t => t.name).find(t => t === this.ticker)) {
+          alert(`${this.ticker} is already exist`);
+           return false;
+        }
+      }
+
 
       const def = {
         name: this.ticker,
-        price: '-'
+        price: '-',
+        polling : '-'
       };
 
-      this.tickers.push(def)
 
-      setInterval(async ()=>{
+      let a = setInterval(async ()=>{
         const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${def.name}&tsyms=USD&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
         const data = await f.json();
         // def.price = data.USD;
         this.tickers.find(t => t.name === def.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(3);
-
-        if (this.sel.name === def.name){
+        if (this.sel && this.sel.name === def.name){
             this.graph.push(data.USD)
         }
 
-      },5000)
+      },3000)
 
+      def.polling = a
+      this.tickers.push(def)
 
       this.ticker = null
     },
@@ -181,6 +190,7 @@ export default {
       this.graph = []
     },
     remove(tick){
+      clearInterval(tick.polling);
       this.tickers = this.tickers.filter( t => t !== tick );
     },
     normilizeGraph(){
