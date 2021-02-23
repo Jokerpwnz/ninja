@@ -3,6 +3,13 @@
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
     <div class="container">
       <div class="w-full my-4"></div>
+      <div v-if="spinner" class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">
+        <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+
       <section>
         <div class="flex">
           <div class="max-w-xs">
@@ -14,6 +21,7 @@
                   type="text"
                   v-model="ticker"
                   v-on:keydown.enter="add"
+                  v-on:keypress="searchingCoins"
                   name="wallet"
                   id="wallet"
                   class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
@@ -42,7 +50,16 @@
           </svg>
           Добавить
         </button>
-        <div v-if="error" style="color: red">{{error}}</div>
+        <div v-if="searchingCoins().length > 0" class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
+            <span class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+                  v-for="(coin) in searchingCoins()"
+                  :key="coin"
+                  @click="addByClick(coin)"
+            >
+              {{coin}}
+            </span>
+        </div>
+        <div v-if="error" class="text-sm text-red-600">{{error}}</div>
       </section>
 
       <template v-if="tickers.length > 0">
@@ -141,7 +158,10 @@ export default {
   data() {
     return {
       ticker: null,
+      coins: [],
+      search: [],
       error: null,
+      spinner: true,
       tickers: [
           // {name:'Bitcoin',price:14123.12},{name:'ETH',price:123.12},{name:'DOGE',price:0.005612}
           ],
@@ -149,20 +169,31 @@ export default {
       graph: []
     }
   },
+  created: async function () {
+    // const req =  await fetch('https://jsonplaceholder.typicode.com/users/')
+    const req =  await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+          return (data);
+        });
+
+    let test = []
+
+    for (let idx in req.Data){
+        test.push(idx)
+    }
+
+    this.coins = test
+    this.coins.sort();
+    this.spinner = false;
+  },
   methods: {
     add() {
-      if (this.ticker === null || this.ticker.length <= 2 || this.ticker.length >= 5){
-        this.error = 'Pls enter correct data';
+      if (this.emptyField() || this.uniqField()){
         return false;
       }
-
-      if (this.tickers.length > 0) {
-        if (this.tickers.map(t => t.name).find(t => t === this.ticker.toUpperCase())) {
-          this.error = `${this.ticker} is already exist`;
-          return false;
-        }
-      }
-
 
       const newTicker = {
         name: this.ticker.toUpperCase(),
@@ -185,6 +216,68 @@ export default {
       this.tickers.push(newTicker)
       this.ticker = null
 
+    },
+    addByClick(param){
+
+      this.ticker = param;
+
+      if (this.emptyField() || this.uniqField()){
+        return false;
+      }
+
+      const newTicker = {
+        name: this.ticker.toUpperCase(),
+        price: '-',
+        polling : '-'
+      };
+
+      this.coins = this.coins.filter( (coin) => coin !== this.ticker);
+
+      let pollings = setInterval(async ()=>{
+        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
+        const data = await f.json();
+        this.tickers.find(t => t.name === newTicker.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(3);
+        if (this.sel && this.sel.name === newTicker.name){
+          this.graph.push(data.USD)
+        }
+
+      },3000)
+
+      newTicker.polling = pollings
+      this.tickers.push(newTicker)
+      this.ticker = null
+    },
+    searchingCoins(){
+      let regExParam = this.ticker;
+      if (regExParam !== null){
+        let reg = new RegExp('^'+regExParam,'i');
+
+        let res = this.coins.filter(item => {
+          return reg.test(item)
+        });
+
+        return res.slice(0,7);
+
+        // let b = this.coins.filter(item => item.toUpperCase().indexOf(regExParam.toUpperCase()) > -1);
+        // return b.slice(0,4);
+      }
+      return  []
+
+    },
+    emptyField(){
+      if (this.ticker === null || this.ticker.length <= 2 || this.ticker.length >= 14){
+        this.error = 'Pls enter correct data';
+        return true;
+      }
+    },
+    uniqField(){
+      if (this.tickers.length > 0) {
+        if (this.tickers.map(t => t.name).find(t => t === this.ticker.toUpperCase())) {
+          this.error = `${this.ticker} is already exist`;
+          this.ticker = '';
+          return true;
+        }
+      }
     },
     select(tick){
       this.sel = tick
