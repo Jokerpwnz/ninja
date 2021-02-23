@@ -42,6 +42,7 @@
           </svg>
           Добавить
         </button>
+        <div v-if="error" style="color: red">{{error}}</div>
       </section>
 
       <template v-if="tickers.length > 0">
@@ -140,6 +141,7 @@ export default {
   data() {
     return {
       ticker: null,
+      error: null,
       tickers: [
           // {name:'Bitcoin',price:14123.12},{name:'ETH',price:123.12},{name:'DOGE',price:0.005612}
           ],
@@ -149,21 +151,21 @@ export default {
   },
   methods: {
     add() {
-      if (this.ticker === null){
-        alert('Pls enter correct data')
+      if (this.ticker === null || this.ticker.length <= 2 || this.ticker.length >= 5){
+        this.error = 'Pls enter correct data';
         return false;
       }
 
       if (this.tickers.length > 0) {
-        if (this.tickers.map(t => t.name).find(t => t === this.ticker)) {
-          alert(`${this.ticker} is already exist`);
-           return false;
+        if (this.tickers.map(t => t.name).find(t => t === this.ticker.toUpperCase())) {
+          this.error = `${this.ticker} is already exist`;
+          return false;
         }
       }
 
 
       const newTicker = {
-        name: this.ticker,
+        name: this.ticker.toUpperCase(),
         price: '-',
         polling : '-'
       };
@@ -172,7 +174,6 @@ export default {
       let pollings = setInterval(async ()=>{
         const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${newTicker.name}&tsyms=USD&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
         const data = await f.json();
-        // def.price = data.USD;
         this.tickers.find(t => t.name === newTicker.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(3);
         if (this.sel && this.sel.name === newTicker.name){
             this.graph.push(data.USD)
