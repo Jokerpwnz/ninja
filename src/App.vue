@@ -317,7 +317,6 @@ export default {
       this.ticker = null
       this.error = ''
       this.filter = ''
-
     },
 
     emptyField() {
