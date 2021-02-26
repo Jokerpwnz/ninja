@@ -27,6 +27,51 @@
                   placeholder="Например DOGE"
               />
             </div>
+            <button
+                class="dropdown:block relative px-3 py-2 text-sm font-semibold leading-relaxed text-gray-800 transition-colors duration-150 bg-white border border-gray-300 rounded-lg focus:outline-none hover:border-gray-600 focus:shadow-outline focus:border-gray-900"
+                role="navigation"
+                aria-haspopup="true"
+            >
+              <div class="flex items-center ">
+                <svg
+                    class="w-4 h-4 text-gray-500 fill-current"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                >
+                  <path
+                      d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h5a1 1 0 000-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM13 16a1 1 0 102 0v-5.586l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L13 10.414V16z"
+                  ></path>
+                </svg>
+                <span class="px-2 text-gray-700">{{currentCurrency}}</span>
+                <svg
+                    class="w-4 h-4 text-gray-500 fill-current"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                >
+                  <path
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                      fill-rule="evenodd"
+                  ></path>
+                </svg>
+              </div>
+              <ul
+                  class="absolute left-0 hidden w-auto p-2 mt-3 space-y-2 text-sm bg-white border border-gray-100 rounded-lg shadow-lg"
+                  aria-label="submenu"
+              >
+                <a
+                    class="inline-block w-full px-2 py-1 font-medium text-gray-600 transition-colors duration-150 rounded-md hover:text-gray-900 focus:outline-none focus:shadow-outline hover:bg-gray-100"
+                    href="#"
+                    v-for="cur in listCurrency"
+                    :key="cur"
+                    @click="changeCurrency(cur)"
+                >
+                  {{cur}}
+                </a>
+              </ul>
+            </button>
+
+
           </div>
         </div>
         <button
@@ -51,9 +96,9 @@
         </button>
         <div v-if="searchingCoins.length > 0" class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
             <span class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-                  v-for="(coin) in searchingCoins"
-                  :key="coin"
-                  @click="getDataByClick(coin)"
+                  v-for="(coin,idx) in searchingCoins"
+                  :key="coin+idx"
+                  @click="addDataByClick(coin)"
             >
               {{coin}}
             </span>
@@ -64,10 +109,7 @@
       <template v-if="tickers.length > 0">
         <hr class="w-full border-t border-gray-600 my-4" />
         <span>
-                  Фильтр <input
-            v-model="filter"
-
-        >
+                  Фильтр <input v-model="filter">
         <!--    ПЕРВЫЙ СППОСО, 2 через WATCH      @input="page = 1"-->
           <button @click="page = page - 1"  :disabled="page <= 1" class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">НАЗАД</button>
           <button @click="page = page + 1"  v-if="hasNextPage" class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" >ВПЕРЕД</button>
@@ -76,8 +118,8 @@
       <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="(tick) in paginationTickers"
-              :key="tick.name"
+              v-for="(tick,idx) in paginationTickers"
+              :key="tick.name+idx"
               @click="select(tick)"
               :class="{
                 'border-4':selectedTicker === tick
@@ -86,7 +128,7 @@
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
-                {{tick.name}} - {{tick.currency}}
+                {{tick.name}} - {{tick.currency}} {{idx}}
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
                 {{tick.price}}
@@ -123,7 +165,7 @@
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
               v-for="(bar,idx) in normilizedGraph"
-              :key="idx"
+              :key="bar+idx"
               :style="{ height: `${bar}%`}"
               class="bg-purple-800 border w-10 h-24"
           ></div>
@@ -169,16 +211,17 @@ export default {
     return {
       ticker: '',
       filter: '',
+      currentCurrency : 'USD',
 
       coins: [],
       tickers: [],
       selectedTicker: null,
       graph: [],
+      listCurrency: ['USD','EUR'],
 
       error: '',
       spinner: true,
       page: 1,
-      // hasNextPage: true
     }
   },
   created: async function () {
@@ -196,7 +239,7 @@ export default {
     }
     this.coins.sort();
 
-    const  tickerData = localStorage.getItem("cryptonomicon-list");
+    const tickerData = localStorage.getItem("cryptonomicon-list");
 
     if (tickerData){
       this.tickers = JSON.parse(tickerData);
@@ -294,9 +337,12 @@ export default {
 
       return polling;
     },
-    getDataByClick(coin){
+    addDataByClick(coin){
         this.ticker = coin
         this.add()
+    },
+    changeCurrency(currency){
+      this.currentCurrency = currency
     },
     add() {
       if (this.emptyField() || this.uniqField()){
@@ -307,7 +353,7 @@ export default {
         name: this.ticker.toUpperCase(),
         price: '-',
         polling : '-',
-        currency: 'USD'
+        currency: this.currentCurrency
       };
 
       let pollings = this.subscribeToUpdate(newTicker.name,newTicker.currency);
@@ -326,8 +372,14 @@ export default {
       }
     },
     uniqField() {
-      if (this.tickers.map(t => t.name).find(t => t === this.ticker.toUpperCase())) {
-        this.error = `${this.ticker} is already exist`;
+      if (
+          this.tickers
+          .find(t => {
+            return t.name === this.ticker.toUpperCase() && t.currency === this.currentCurrency.toUpperCase()}
+            ))
+      {
+
+        this.error = `${this.ticker} is already exist with currency ${this.currentCurrency}`;
         this.ticker = '';
         return true;
       }
