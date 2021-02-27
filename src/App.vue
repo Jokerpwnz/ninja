@@ -328,7 +328,7 @@ export default {
         const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=${tickerCurrency}&api_key=582f816e0eb2102c8633892d87a38c766bd250fdf5460cf3964e9e9ba9e9f08b`)
         const data = await f.json();
 
-        this.tickers.find(t => t.name === tickerName).price = data[tickerCurrency] > 1 ? data[tickerCurrency].toFixed(2) : data[tickerCurrency].toPrecision(3);
+        this.tickers.find(t => t.name === tickerName && t.currency === tickerCurrency).price = data[tickerCurrency] > 1 ? data[tickerCurrency].toFixed(2) : data[tickerCurrency].toPrecision(3);
         if (this.selectedTicker && this.selectedTicker.name === tickerName){
           this.graph.push(data[tickerCurrency])
         }
